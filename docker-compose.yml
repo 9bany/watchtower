@@ -10,7 +10,17 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     ports:
       - 8080:8080
-    command: --interval 10 --http-api-metrics --http-api-token demotoken --debug prometheus grafana parent child
+    command: --interval 10 --http-api-metrics --http-api-token demotoken --debug --label-enable prometheus grafana parent child app_example
+  server_app_example:
+    container_name: app_example
+    build:
+      context: ./examples
+      dockerfile: ./Dockerfile
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+      - "com.centurylinklabs.watchtower.local-image=true"
+    ports:
+      - "8088:8088"
   prometheus:
     container_name: prometheus
     image: prom/prometheus

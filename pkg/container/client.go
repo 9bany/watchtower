@@ -39,9 +39,9 @@ type Client interface {
 // NewClient returns a new Client instance which can be used to interact with
 // the Docker API.
 // The client reads its configuration from the following environment variables:
-//  * DOCKER_HOST			the docker-engine host to send api requests to
-//  * DOCKER_TLS_VERIFY		whether to verify tls certificates
-//  * DOCKER_API_VERSION	the minimum docker api version to work with
+//   - DOCKER_HOST			the docker-engine host to send api requests to
+//   - DOCKER_TLS_VERIFY		whether to verify tls certificates
+//   - DOCKER_API_VERSION	the minimum docker api version to work with
 func NewClient(opts ClientOptions) Client {
 	cli, err := sdkClient.NewClientWithOpts(sdkClient.FromEnv)
 
@@ -115,13 +115,18 @@ func (client dockerClient) ListContainers(fn t.Filter) ([]Container, error) {
 		})
 
 	if err != nil {
+		log.Error("can not get containers")
 		return nil, err
 	}
 
+	log.Info("containers: ", containers)
+
 	for _, runningContainer := range containers {
 
-		c, err := client.GetContainer(t.ContainerID(runningContainer.ID))
+		containerID := t.ContainerID(runningContainer.ID)
+		c, err := client.GetContainer(containerID)
 		if err != nil {
+			log.WithError(err).Info("ListContainers: ", err)
 			return nil, err
 		}
 
@@ -279,7 +284,9 @@ func (client dockerClient) RenameContainer(c Container, newName string) error {
 
 func (client dockerClient) IsContainerStale(container Container) (stale bool, latestImage t.ImageID, err error) {
 	ctx := context.Background()
-
+	if isLocalImage, checkErr := container.LocalImage(); checkErr && isLocalImage {
+		return client.HasNewImage(ctx, container)
+	}
 	if !client.PullImages {
 		log.Debugf("Skipping image pull.")
 	} else if err := client.PullImage(ctx, container); err != nil {
@@ -292,13 +299,15 @@ func (client dockerClient) IsContainerStale(container Container) (stale bool, la
 func (client dockerClient) HasNewImage(ctx context.Context, container Container) (hasNew bool, latestImage t.ImageID, err error) {
 	currentImageID := t.ImageID(container.containerInfo.ContainerJSONBase.Image)
 	imageName := container.ImageName()
-
+	log.WithField("imageName", imageName).Debug("dockerClient::HasNewImage: currentImageID", currentImageID)
 	newImageInfo, _, err := client.api.ImageInspectWithRaw(ctx, imageName)
+	log.Debug("dockerClient::HasNewImage: newImageInfo", newImageInfo)
 	if err != nil {
 		return false, currentImageID, err
 	}
 
 	newImageID := t.ImageID(newImageInfo.ID)
+	log.Debug("dockerClient::HasNewImage: newImageID", newImageID)
 	if newImageID == currentImageID {
 		log.Debugf("No new images found for %s", container.Name())
 		return false, currentImageID, nil

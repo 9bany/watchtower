@@ -28,13 +28,15 @@ func Update(client container.Client, params types.UpdateParams) (types.Report, e
 
 	containers, err := client.ListContainers(params.Filter)
 	if err != nil {
+		log.WithError(err).Error("Update::error: ")
 		return nil, err
 	}
-
+	log.Debug("Update::containers: ", containers)
 	staleCheckFailed := 0
 
 	for i, targetContainer := range containers {
 		stale, newestImage, err := client.IsContainerStale(targetContainer)
+		log.Debug("Update::IsContainerStale: ", stale, newestImage, err)
 		shouldUpdate := stale && !params.NoRestart && !params.MonitorOnly && !targetContainer.IsMonitorOnly()
 		if err == nil && shouldUpdate {
 			// Check to make sure we have all the necessary information for recreating the container
