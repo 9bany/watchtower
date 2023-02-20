@@ -115,18 +115,14 @@ func (client dockerClient) ListContainers(fn t.Filter) ([]Container, error) {
 		})
 
 	if err != nil {
-		log.Error("can not get containers")
 		return nil, err
 	}
-
-	log.Info("containers: ", containers)
 
 	for _, runningContainer := range containers {
 
 		containerID := t.ContainerID(runningContainer.ID)
 		c, err := client.GetContainer(containerID)
 		if err != nil {
-			log.WithError(err).Info("ListContainers: ", err)
 			return nil, err
 		}
 
@@ -299,15 +295,12 @@ func (client dockerClient) IsContainerStale(container Container) (stale bool, la
 func (client dockerClient) HasNewImage(ctx context.Context, container Container) (hasNew bool, latestImage t.ImageID, err error) {
 	currentImageID := t.ImageID(container.containerInfo.ContainerJSONBase.Image)
 	imageName := container.ImageName()
-	log.WithField("imageName", imageName).Debug("dockerClient::HasNewImage: currentImageID", currentImageID)
 	newImageInfo, _, err := client.api.ImageInspectWithRaw(ctx, imageName)
-	log.Debug("dockerClient::HasNewImage: newImageInfo", newImageInfo)
 	if err != nil {
 		return false, currentImageID, err
 	}
 
 	newImageID := t.ImageID(newImageInfo.ID)
-	log.Debug("dockerClient::HasNewImage: newImageID", newImageID)
 	if newImageID == currentImageID {
 		log.Debugf("No new images found for %s", container.Name())
 		return false, currentImageID, nil
