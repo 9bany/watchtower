@@ -39,9 +39,9 @@ type Client interface {
 // NewClient returns a new Client instance which can be used to interact with
 // the Docker API.
 // The client reads its configuration from the following environment variables:
-//  * DOCKER_HOST			the docker-engine host to send api requests to
-//  * DOCKER_TLS_VERIFY		whether to verify tls certificates
-//  * DOCKER_API_VERSION	the minimum docker api version to work with
+//   - DOCKER_HOST			the docker-engine host to send api requests to
+//   - DOCKER_TLS_VERIFY		whether to verify tls certificates
+//   - DOCKER_API_VERSION	the minimum docker api version to work with
 func NewClient(opts ClientOptions) Client {
 	cli, err := sdkClient.NewClientWithOpts(sdkClient.FromEnv)
 
@@ -119,8 +119,8 @@ func (client dockerClient) ListContainers(fn t.Filter) ([]t.Container, error) {
 	}
 
 	for _, runningContainer := range containers {
-
-		c, err := client.GetContainer(t.ContainerID(runningContainer.ID))
+		containerID := t.ContainerID(runningContainer.ID)
+		c, err := client.GetContainer(containerID)
 		if err != nil {
 			return nil, err
 		}
@@ -279,7 +279,9 @@ func (client dockerClient) RenameContainer(c t.Container, newName string) error 
 
 func (client dockerClient) IsContainerStale(container t.Container) (stale bool, latestImage t.ImageID, err error) {
 	ctx := context.Background()
-
+	if isLocalImage, checkErr := container.LocalImage(); checkErr && isLocalImage {
+		return client.HasNewImage(ctx, container)
+	}
 	if !client.PullImages || container.IsNoPull() {
 		log.Debugf("Skipping image pull.")
 	} else if err := client.PullImage(ctx, container); err != nil {

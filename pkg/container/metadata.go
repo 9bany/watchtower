@@ -15,6 +15,7 @@ const (
 	postUpdateLabel        = "com.centurylinklabs.watchtower.lifecycle.post-update"
 	preUpdateTimeoutLabel  = "com.centurylinklabs.watchtower.lifecycle.pre-update-timeout"
 	postUpdateTimeoutLabel = "com.centurylinklabs.watchtower.lifecycle.post-update-timeout"
+	enableLocal            = "com.centurylinklabs.watchtower.local-image"
 )
 
 // GetLifecyclePreCheckCommand returns the pre-check command set in the container metadata or an empty string
